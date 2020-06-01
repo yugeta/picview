@@ -14,27 +14,27 @@
 </head>
 <body>
 
-  <table>
+  <table class="img-lists">
     <tr>
       <td><img class="picview" src="001.jpg"></td>
-      <td><img class="picview" src="002.jpg"></td>
-      <td><img class="picview" src="003.jpg"></td>
+      <td><img src="002.jpg"></td>
+      <td><img src="003.jpg"></td>
     </tr>
     <tr>
-      <td><img class="picview" src="004.jpg"></td>
-      <td><img class="picview" src="005.jpg"></td>
-      <td><img class="picview" src="006.jpg"></td>
+      <td><img src="004.jpg"></td>
+      <td><img src="005.jpg"></td>
+      <td><img src="006.jpg"></td>
     </tr>
     <tr>
-      <td><img class="picview" src="007.jpg"></td>
-      <td><img class="picview" src="008.jpg"></td>
-      <td><img class="picview" src="009.jpg"></td>
+      <td><img src="007.jpg"></td>
+      <td><img src="008.jpg"></td>
+      <td><img src="009.jpg"></td>
     </tr>
   </table>
 
   <script>
     new $$picview({
-      selector : ".picview",
+      target : ".img-lists img",
       mouseover_action : true,
       window_limit_weight : 0.95
     });

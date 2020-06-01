@@ -1,8 +1,9 @@
 ;$$picview = (function(){
 
   var __options = {
-    selector : ".picview",
-    mouseover_action : true,
+    target              : "img",
+    className           : "picview",
+    mouseover_action    : true,
     window_limit_weight : 0.9
   };
 
@@ -182,9 +183,22 @@
 
   var MAIN = function(options){
     this.options = this.setOptions(options);
+    this.init();
     this.setCSS();
     this.setHTML();
-    this.init();
+    this.setTargets();
+  };
+
+  MAIN.prototype.init = function(){
+    var target  = this.options.target;
+    var clsName = this.options.className;
+    if(!target){return;}
+    var targets = document.querySelectorAll(target);
+    if(!targets || !targets.length){return;}
+    for(var i=0; i<targets.length; i++){
+      if(targets[i].classList && targets[i].classList.contains(clsName)){continue;}
+      targets[i].classList.add(clsName);
+    }
   };
 
   MAIN.prototype.setOptions = function(options){
@@ -222,8 +236,8 @@
   };
 
   // Start
-  MAIN.prototype.init = function(){
-    var targets = document.querySelectorAll(this.options.selector);
+  MAIN.prototype.setTargets = function(){
+    var targets = document.querySelectorAll("."+this.options.className);
     if(targets && targets.length){
       for(var i=0; i<targets.length; i++){
         if(targets[i].hasAttribute("data-picview-flg")){continue;}
@@ -243,13 +257,14 @@
     || typeof this.options.template === "undefined"
     || !this.options.template){return;}
 
+    this.close_strict();
+
     document.body.insertAdjacentHTML("afterend" , this.options.template);
     
     var base = document.querySelector(".picview-base");
     new LIB().event(base , "click" , (function(e){this.close(e)}).bind(this));
 
     var elm_rect = elm.getBoundingClientRect();
-    console.log(elm_rect);
     var area = base.querySelector(".picview-area");
     area.style.setProperty("transform" , "none" , "");
     area.style.setProperty("width"     , elm_rect.width  +"px" , "");
@@ -260,6 +275,13 @@
     var img = base.querySelector(".picview-area img");
     img.onload = (function(e){this.img_loaded(e)}).bind(this);
     img.src = elm.src;
+
+    this.img    = img;
+    this.moved  = false;
+    this.loaded = false;
+
+    setTimeout((function(){this.picview_move()}).bind(this) , 300);
+    // this.picview_move();
   };
 
   // close
@@ -268,16 +290,55 @@
     if(!target || target.getAttribute("class") !== "picview-base"){return;}
     target.parentNode.removeChild(target);
   };
+  MAIN.prototype.close_strict = function(){
+    var target = document.querySelector(".picview-base");
+    if(!target){return;}
+    target.parentNode.removeChild(target);
+  };
 
   // img-loaded
   MAIN.prototype.img_loaded = function(e){
+    var img = e.currentTarget;
+    this.loaded = true;
+    if(this.moved === true){
+      // this.picview_expand(img);
+      // setTimeout((function(){this.picview_move()}).bind(this) , 100);
+      setTimeout((function(){this.picview_expand();}).bind(this) , 300);
+    }
+  };
 
+  MAIN.prototype.picview_move = function(){
+    var area = document.querySelector(".picview-area");
+    area.setAttribute("data-picview-move","1");
+    
+    if(this.loaded === true){
+      // var img = area.querySelector("img");
+      // this.picview_img_visible(img);
+      // this.picview_expand();
+      setTimeout((function(){this.picview_expand();}).bind(this) , 300);
+    }
+  };
+  MAIN.prototype.picview_expand = function(){
+    var area = document.querySelector(".picview-area");
+    var img = area.querySelector("img");
+    var size = this.getAreaSize(img);
+    area.style.setProperty("width"  , size.width  + "px" , "");
+    area.style.setProperty("height" , size.height + "px" , "");
+
+    this.moved = true;
+    setTimeout((function(img){this.picview_img_visible(img)}).bind(this,img) , 300);
+  };
+  MAIN.prototype.picview_img_visible = function(img){
     // loading非表示
     var area = document.querySelector(".picview-area");
-
     area.setAttribute("data-loaded","1");
 
-    var img = e.currentTarget;
+    setTimeout((function(img){img.setAttribute("data-loaded" , "1")}).bind(this,img) , 300);
+    this.loaded = false;
+    this.moved  = false;
+    this.img    = null;
+  };
+  MAIN.prototype.getAreaSize = function(img){
 
     // 画面サイズの80%を最大値とする
     var win_w = window.innerWidth  * this.options.window_limit_weight;
@@ -311,10 +372,10 @@
       }
     }
 
-    area.style.setProperty("width"  , w + "px" , "");
-    area.style.setProperty("height" , h + "px" , "");
-
-    setTimeout((function(img){img.setAttribute("data-loaded" , "1")}).bind(this,img) , 300);
+    return {
+      width  : w,
+      height : h
+    };
   };
 
 
