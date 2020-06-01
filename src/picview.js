@@ -4,7 +4,8 @@
     target              : "img",
     className           : "picview",
     mouseover_action    : true,
-    window_limit_weight : 0.9
+    window_limit_weight : 0.9,
+    swap_images         : []
   };
 
 
@@ -274,14 +275,43 @@
 
     var img = base.querySelector(".picview-area img");
     img.onload = (function(e){this.img_loaded(e)}).bind(this);
-    img.src = elm.src;
+    img.src = this.getSwapImagePath(elm);
 
     this.img    = img;
     this.moved  = false;
     this.loaded = false;
 
     setTimeout((function(){this.picview_move()}).bind(this) , 300);
-    // this.picview_move();
+  };
+
+  // 
+  MAIN.prototype.getSwapImagePath = function(elm){
+    if(!elm){return "";}
+
+    var img_num = this.getImageNumber(elm);
+
+    // imgタグ内の記載がある場合
+    if(elm.hasAttribute("data-picview-src")){
+      return elm.getAttribute("data-picview-src");
+    }
+    // options.swap_imagesに登録がある場合
+    else if(img_num !== null && typeof this.options.swap_images[img_num] !== "undefined" && this.options.swap_images[img_num]){
+      return this.options.swap_images[img_num];
+    }
+    // imgタグ内と同じファイルを表示
+    else{
+      return elm.src;
+    }
+  };
+
+  MAIN.prototype.getImageNumber = function(elm){
+    var targets = document.querySelectorAll(this.options.target);
+    for(var i=0; i<targets.length; i++){
+      if(targets[i] === elm){
+        return i;
+      }
+    }
+    return null;
   };
 
   // close
@@ -301,8 +331,6 @@
     var img = e.currentTarget;
     this.loaded = true;
     if(this.moved === true){
-      // this.picview_expand(img);
-      // setTimeout((function(){this.picview_move()}).bind(this) , 100);
       setTimeout((function(){this.picview_expand();}).bind(this) , 300);
     }
   };
@@ -312,9 +340,6 @@
     area.setAttribute("data-picview-move","1");
     
     if(this.loaded === true){
-      // var img = area.querySelector("img");
-      // this.picview_img_visible(img);
-      // this.picview_expand();
       setTimeout((function(){this.picview_expand();}).bind(this) , 300);
     }
   };

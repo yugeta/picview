@@ -28,7 +28,7 @@
     <tr>
       <td><img src="007.jpg"></td>
       <td><img src="008.jpg"></td>
-      <td><img src="009.jpg"></td>
+      <td><img src="009.jpg" data-picview-src="009_view.jpg"></td>
     </tr>
   </table>
 
@@ -36,7 +36,8 @@
     new $$picview({
       target : ".img-lists img",
       mouseover_action : true,
-      window_limit_weight : 0.95
+      window_limit_weight : 0.95,
+      swap_images : ["001_view.jpg","","003_view.jpg"]
     });
   </script>
 </body>
