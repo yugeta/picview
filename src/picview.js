@@ -253,7 +253,7 @@
 
   // set-event
   MAIN.prototype.setEvent = function(elm){
-    if(!elm || !elm.src){return;}
+    if(!elm){return;}
     if(typeof this.options === "undefined"
     || typeof this.options.template === "undefined"
     || !this.options.template){return;}
