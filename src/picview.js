@@ -222,7 +222,7 @@
     head[0].appendChild(link);
   };
 
-  // カレンダー表示elementの構築（読み込み）
+  // template
   MAIN.prototype.setHTML = function(){
     var myScript = new LIB().currentScriptTag;
     var url = myScript.replace(".js",".html");
