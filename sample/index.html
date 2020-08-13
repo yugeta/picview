@@ -34,10 +34,26 @@
 
   <script>
     new $$picview({
-      target : ".img-lists img",
-      mouseover_action : true,
+      target              : ".img-lists img",
+      mouseover_action    : true,
       window_limit_weight : 0.95,
-      swap_images : ["001_view.jpg","","003_view.jpg"]
+      swap_images         : ["001_view.jpg","","003_view.jpg"],
+      background_close    : false,
+      add_elements        : [
+        {
+          html : "<button class='close'>閉じる</button>",
+          click : function(main,mode,e){
+            main.close_strict();
+          }
+        },
+        {
+          html : "<button class='close'>mode</button>",
+          click : function(main,mode,e){
+            console.log(mode);
+            console.log(e);
+          }
+        },
+      ]
     });
   </script>
 </body>

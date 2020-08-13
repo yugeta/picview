@@ -5,8 +5,260 @@
     className           : "picview",
     mouseover_action    : true,
     window_limit_weight : 0.9,
-    swap_images         : []
+    swap_images         : [],
+    background_close    : true,
+    add_elements        : []
   };
+
+  var MAIN = function(options){
+    this.options = this.setOptions(options);
+    this.init();
+    this.setCSS();
+    this.setTemplate();
+    this.setTargets();
+  };
+
+  MAIN.prototype.init = function(){
+    var target  = this.options.target;
+    var clsName = this.options.className;
+    if(!target){return;}
+    var targets = document.querySelectorAll(target);
+    if(!targets || !targets.length){return;}
+    for(var i=0; i<targets.length; i++){
+      if(targets[i].classList && targets[i].classList.contains(clsName)){continue;}
+      targets[i].classList.add(clsName);
+    }
+  };
+
+  MAIN.prototype.setOptions = function(options){
+    options = options ? options : {};
+    var res = JSON.parse( JSON.stringify(__options) );
+    for (var i in options) {res[i] = options[i];}
+    return res;
+  };
+
+  // set-css
+  MAIN.prototype.setCSS = function(){
+    if(document.querySelector("link[data-picview='1']")){return}
+    var myScript = new LIB().currentScriptTag;
+    var href = myScript.replace(".js",".css");
+    var link = document.createElement("link");
+    link.setAttribute("data-picview","1");
+    link.rel = "stylesheet";
+    link.href = href;
+    var head = document.getElementsByTagName("head");
+    head[0].appendChild(link);
+  };
+
+  // template
+  MAIN.prototype.setTemplate = function(){
+    var myScript = new LIB().currentScriptTag;
+    var url = myScript.replace(".js",".html");
+    new AJAX({
+      url : url,
+      method : "get",
+      onSuccess : (function(res){
+        if(!res){return;}
+        this.options.template = res;
+      }).bind(this)
+    });
+  };
+
+  // Start
+  MAIN.prototype.setTargets = function(){
+    var targets = document.querySelectorAll("."+this.options.className);
+    if(targets && targets.length){
+      for(var i=0; i<targets.length; i++){
+        if(targets[i].hasAttribute("data-picview-flg")){continue;}
+        targets[i].setAttribute("data-picview-flg","1");
+        if(this.options.mouseover_action === true){
+          targets[i].setAttribute("data-mouseover-action","1");
+        }
+        new LIB().event(targets[i] , "click" , (function(e){this.viewImage(e.currentTarget)}).bind(this));
+      }
+    }
+  };
+
+  // set-event
+  MAIN.prototype.viewImage = function(elm){
+    if(!elm){return;}
+    if(typeof this.options === "undefined"
+    || typeof this.options.template === "undefined"
+    || !this.options.template){return;}
+
+    this.close_strict();
+
+    document.body.insertAdjacentHTML("afterend" , this.options.template);
+    
+    var base = document.querySelector(".picview-base");
+    new LIB().event(base , "click" , (function(e){this.close(e)}).bind(this));
+
+    var elm_rect = elm.getBoundingClientRect();
+    var area = base.querySelector(".picview-area");
+    area.style.setProperty("transform" , "none" , "");
+    area.style.setProperty("width"     , elm_rect.width  +"px" , "");
+    area.style.setProperty("height"    , elm_rect.height +"px" , "");
+    area.style.setProperty("top"       , elm_rect.y      +"px" , "");
+    area.style.setProperty("left"      , elm_rect.x      +"px" , "");
+
+    var img = base.querySelector(".picview-area img");
+    img.onload = (function(e){this.img_loaded(e)}).bind(this);
+    img.src = this.getSwapImagePath(elm);
+
+    this.img    = img;
+    this.moved  = false;
+    this.loaded = false;
+
+    setTimeout((function(){this.picview_move_center()}).bind(this) , 300);
+  };
+
+  // 
+  MAIN.prototype.getSwapImagePath = function(elm){
+    if(!elm){return "";}
+
+    var img_num = this.getImageNumber(elm);
+
+    // imgタグ内の記載がある場合
+    if(elm.hasAttribute("data-picview-src")){
+      return elm.getAttribute("data-picview-src");
+    }
+    // options.swap_imagesに登録がある場合
+    else if(img_num !== null && typeof this.options.swap_images[img_num] !== "undefined" && this.options.swap_images[img_num]){
+      return this.options.swap_images[img_num];
+    }
+    // imgタグ内と同じファイルを表示
+    else{
+      return elm.src;
+    }
+  };
+
+  MAIN.prototype.getImageNumber = function(elm){
+    var targets = document.querySelectorAll(this.options.target);
+    for(var i=0; i<targets.length; i++){
+      if(targets[i] === elm){
+        return i;
+      }
+    }
+    return null;
+  };
+
+  // close
+  MAIN.prototype.close = function(e){
+    if(this.options.background_close !== true){return;}
+    var target = e.target;
+    if(!target || target.getAttribute("class") !== "picview-base"){return;}
+    target.parentNode.removeChild(target);
+  };
+  MAIN.prototype.close_strict = function(){
+    var target = document.querySelector(".picview-base");
+    if(!target){return;}
+    target.parentNode.removeChild(target);
+  };
+
+  // img-loaded
+  MAIN.prototype.img_loaded = function(e){
+    var img = e.currentTarget;
+    this.loaded = true;
+    if(this.moved === true){
+      setTimeout((function(){this.picview_expand();}).bind(this) , 300);
+    }
+  };
+
+  MAIN.prototype.picview_move_center = function(){
+    var area = document.querySelector(".picview-area");
+    area.setAttribute("data-picview-move","1");
+    
+    if(this.loaded === true){
+      setTimeout((function(){this.picview_expand();}).bind(this) , 300);
+    }
+  };
+  MAIN.prototype.picview_expand = function(){
+    var area = document.querySelector(".picview-area");
+    var img = area.querySelector("img");
+    var size = this.getAreaSize(img);
+    area.style.setProperty("width"  , size.width  + "px" , "");
+    area.style.setProperty("height" , size.height + "px" , "");
+
+    this.moved = true;
+    setTimeout((function(img){this.picview_img_visible(img)}).bind(this,img) , 300);
+  };
+  MAIN.prototype.picview_img_visible = function(img){
+    // loading非表示
+    var area = document.querySelector(".picview-area");
+    area.setAttribute("data-loaded","1");
+
+    setTimeout((function(img){img.setAttribute("data-loaded" , "1")}).bind(this,img) , 300);
+    this.loaded = false;
+    this.moved  = false;
+    this.img    = null;
+
+    this.add_elements();
+  };
+  MAIN.prototype.getAreaSize = function(img){
+
+    // 画面サイズの80%を最大値とする
+    var win_w = window.innerWidth  * this.options.window_limit_weight;
+    var win_h = window.innerHeight * this.options.window_limit_weight;
+
+    // 画像の本来のサイズ
+    var img_w = img.naturalWidth;
+    var img_h = img.naturalHeight;
+
+    // 縦横の比率
+    var rate  = img_w / img_h;
+
+    // 横長
+    if(rate > 1){
+      var w = img_w < win_w * this.options.window_limit_weight ? img_w : win_w * this.options.window_limit_weight;
+      var h = img_h * (w / img_w);
+      if(h > win_h){
+        var rate2 = h / win_h;
+        h = win_h;
+        w = w / rate2;
+      }
+    }
+    // 縦長
+    else{
+      var h = img_h < win_h * this.options.window_limit_weight ? img_h : win_h * this.options.window_limit_weight;
+      var w = img_w * (h / img_h);
+      if(w > win_w){
+        var rate2 = w / win_w;
+        w = win_w;
+        h = h / rate2;
+      }
+    }
+
+    return {
+      width  : w,
+      height : h
+    };
+  };
+
+  MAIN.prototype.add_elements = function(){
+    if(typeof this.options.add_elements === "undefined"
+    || !this.options.add_elements
+    || !this.options.add_elements.length){return;}
+
+    var area = document.querySelector(".controls");
+    if(!area){return;}
+    var lib = new LIB();
+
+    for(var i=0; i<this.options.add_elements.length; i++){
+      if(typeof this.options.add_elements[i].html === "undefined"
+      || !this.options.add_elements[i].html){continue;}
+      var div = document.createElement("div");
+      div.className = "add-element";
+      div.innerHTML = this.options.add_elements[i].html;
+      if(typeof this.options.add_elements[i].click !== "undefined"){
+        var proc = this.options.add_elements[i].click;
+        lib.event(div , "click" , (function(proc,e){proc(this,"click",e)}).bind(this , proc));
+      }
+      area.appendChild(div);
+    }
+  };
+
+
+
 
 
   var LIB = function(){};
@@ -182,226 +434,7 @@
 	};
 
 
-  var MAIN = function(options){
-    this.options = this.setOptions(options);
-    this.init();
-    this.setCSS();
-    this.setHTML();
-    this.setTargets();
-  };
-
-  MAIN.prototype.init = function(){
-    var target  = this.options.target;
-    var clsName = this.options.className;
-    if(!target){return;}
-    var targets = document.querySelectorAll(target);
-    if(!targets || !targets.length){return;}
-    for(var i=0; i<targets.length; i++){
-      if(targets[i].classList && targets[i].classList.contains(clsName)){continue;}
-      targets[i].classList.add(clsName);
-    }
-  };
-
-  MAIN.prototype.setOptions = function(options){
-    options = options ? options : {};
-    var res = JSON.parse( JSON.stringify(__options) );
-    for (var i in options) {res[i] = options[i];}
-    return res;
-  };
-
-  // set-css
-  MAIN.prototype.setCSS = function(){
-    if(document.querySelector("link[data-picview='1']")){return}
-    var myScript = new LIB().currentScriptTag;
-    var href = myScript.replace(".js",".css");
-    var link = document.createElement("link");
-    link.setAttribute("data-picview","1");
-    link.rel = "stylesheet";
-    link.href = href;
-    var head = document.getElementsByTagName("head");
-    head[0].appendChild(link);
-  };
-
-  // template
-  MAIN.prototype.setHTML = function(){
-    var myScript = new LIB().currentScriptTag;
-    var url = myScript.replace(".js",".html");
-    new AJAX({
-      url : url,
-      method : "get",
-      onSuccess : (function(res){
-        if(!res){return;}
-        this.options.template = res;
-      }).bind(this)
-    });
-  };
-
-  // Start
-  MAIN.prototype.setTargets = function(){
-    var targets = document.querySelectorAll("."+this.options.className);
-    if(targets && targets.length){
-      for(var i=0; i<targets.length; i++){
-        if(targets[i].hasAttribute("data-picview-flg")){continue;}
-        targets[i].setAttribute("data-picview-flg","1");
-        if(this.options.mouseover_action === true){
-          targets[i].setAttribute("data-mouseover-action","1");
-        }
-        new LIB().event(targets[i] , "click" , (function(e){this.setEvent(e.currentTarget)}).bind(this));
-      }
-    }
-  };
-
-  // set-event
-  MAIN.prototype.setEvent = function(elm){
-    if(!elm){return;}
-    if(typeof this.options === "undefined"
-    || typeof this.options.template === "undefined"
-    || !this.options.template){return;}
-
-    this.close_strict();
-
-    document.body.insertAdjacentHTML("afterend" , this.options.template);
-    
-    var base = document.querySelector(".picview-base");
-    new LIB().event(base , "click" , (function(e){this.close(e)}).bind(this));
-
-    var elm_rect = elm.getBoundingClientRect();
-    var area = base.querySelector(".picview-area");
-    area.style.setProperty("transform" , "none" , "");
-    area.style.setProperty("width"     , elm_rect.width  +"px" , "");
-    area.style.setProperty("height"    , elm_rect.height +"px" , "");
-    area.style.setProperty("top"       , elm_rect.y      +"px" , "");
-    area.style.setProperty("left"      , elm_rect.x      +"px" , "");
-
-    var img = base.querySelector(".picview-area img");
-    img.onload = (function(e){this.img_loaded(e)}).bind(this);
-    img.src = this.getSwapImagePath(elm);
-
-    this.img    = img;
-    this.moved  = false;
-    this.loaded = false;
-
-    setTimeout((function(){this.picview_move()}).bind(this) , 300);
-  };
-
-  // 
-  MAIN.prototype.getSwapImagePath = function(elm){
-    if(!elm){return "";}
-
-    var img_num = this.getImageNumber(elm);
-
-    // imgタグ内の記載がある場合
-    if(elm.hasAttribute("data-picview-src")){
-      return elm.getAttribute("data-picview-src");
-    }
-    // options.swap_imagesに登録がある場合
-    else if(img_num !== null && typeof this.options.swap_images[img_num] !== "undefined" && this.options.swap_images[img_num]){
-      return this.options.swap_images[img_num];
-    }
-    // imgタグ内と同じファイルを表示
-    else{
-      return elm.src;
-    }
-  };
-
-  MAIN.prototype.getImageNumber = function(elm){
-    var targets = document.querySelectorAll(this.options.target);
-    for(var i=0; i<targets.length; i++){
-      if(targets[i] === elm){
-        return i;
-      }
-    }
-    return null;
-  };
-
-  // close
-  MAIN.prototype.close = function(e){
-    var target = e.target;
-    if(!target || target.getAttribute("class") !== "picview-base"){return;}
-    target.parentNode.removeChild(target);
-  };
-  MAIN.prototype.close_strict = function(){
-    var target = document.querySelector(".picview-base");
-    if(!target){return;}
-    target.parentNode.removeChild(target);
-  };
-
-  // img-loaded
-  MAIN.prototype.img_loaded = function(e){
-    var img = e.currentTarget;
-    this.loaded = true;
-    if(this.moved === true){
-      setTimeout((function(){this.picview_expand();}).bind(this) , 300);
-    }
-  };
-
-  MAIN.prototype.picview_move = function(){
-    var area = document.querySelector(".picview-area");
-    area.setAttribute("data-picview-move","1");
-    
-    if(this.loaded === true){
-      setTimeout((function(){this.picview_expand();}).bind(this) , 300);
-    }
-  };
-  MAIN.prototype.picview_expand = function(){
-    var area = document.querySelector(".picview-area");
-    var img = area.querySelector("img");
-    var size = this.getAreaSize(img);
-    area.style.setProperty("width"  , size.width  + "px" , "");
-    area.style.setProperty("height" , size.height + "px" , "");
-
-    this.moved = true;
-    setTimeout((function(img){this.picview_img_visible(img)}).bind(this,img) , 300);
-  };
-  MAIN.prototype.picview_img_visible = function(img){
-    // loading非表示
-    var area = document.querySelector(".picview-area");
-    area.setAttribute("data-loaded","1");
-
-    setTimeout((function(img){img.setAttribute("data-loaded" , "1")}).bind(this,img) , 300);
-    this.loaded = false;
-    this.moved  = false;
-    this.img    = null;
-  };
-  MAIN.prototype.getAreaSize = function(img){
-
-    // 画面サイズの80%を最大値とする
-    var win_w = window.innerWidth  * this.options.window_limit_weight;
-    var win_h = window.innerHeight * this.options.window_limit_weight;
-
-    // 画像の本来のサイズ
-    var img_w = img.naturalWidth;
-    var img_h = img.naturalHeight;
-
-    // 縦横の比率
-    var rate  = img_w / img_h;
-
-    // 横長
-    if(rate > 1){
-      var w = img_w < win_w * this.options.window_limit_weight ? img_w : win_w * this.options.window_limit_weight;
-      var h = img_h * (w / img_w);
-      if(h > win_h){
-        var rate2 = h / win_h;
-        h = win_h;
-        w = w / rate2;
-      }
-    }
-    // 縦長
-    else{
-      var h = img_h < win_h * this.options.window_limit_weight ? img_h : win_h * this.options.window_limit_weight;
-      var w = img_w * (h / img_h);
-      if(w > win_w){
-        var rate2 = w / win_w;
-        w = win_w;
-        h = h / rate2;
-      }
-    }
-
-    return {
-      width  : w,
-      height : h
-    };
-  };
+  
 
 
   return MAIN;
